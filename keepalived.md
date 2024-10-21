@@ -1,5 +1,154 @@
-
 ### Installation and Configuration Script:
+
+To set up **Keepalived** with a backup system and priority settings, follow these detailed steps:
+
+### 1. **Install Keepalived on both systems**
+
+Run the following command on both the **master** and **backup** systems to install Keepalived:
+
+```bash
+sudo apt update
+sudo apt install keepalived
+```
+
+### 2. **Configure the Master Node**
+
+Edit the Keepalived configuration file on the **master** system:
+
+```bash
+sudo nano /etc/keepalived/keepalived.conf
+```
+
+Here is an example configuration for the master node:
+
+```bash
+vrrp_instance VI_1 {
+    state MASTER               # Set this node as MASTER
+    interface eth0              # Network interface (adjust if necessary)
+    virtual_router_id 51        # Must be the same on master and backup
+    priority 150                # Higher priority for the MASTER
+    advert_int 1                # Advertisement interval in seconds
+    
+    authentication {
+        auth_type PASS          # Authentication type
+        auth_pass securepass123 # Use a strong password
+    }
+    
+    virtual_ipaddress {
+        192.168.188.2           # The virtual IP that will float between systems
+    }
+}
+```
+
+- `state MASTER`: Defines the system as the master node.
+- `priority 100`: The master node has a higher priority. The backup node will have a lower priority.
+- `virtual_router_id`: Must be the same across both master and backup nodes.
+
+### 3. **Configure the Backup Node**
+
+Now, on the **backup** system, create or edit the Keepalived configuration file:
+
+```bash
+sudo nano /etc/keepalived/keepalived.conf
+```
+
+Here is an example configuration for the backup node:
+
+```bash
+vrrp_instance VI_1 {
+    state BACKUP                # Set this node as BACKUP
+    interface eth0              # Network interface
+    virtual_router_id 51        # Same as the master
+    priority 90                 # Lower priority than the master
+    advert_int 1                # Same advertisement interval as the master
+    
+    authentication {
+        auth_type PASS          # Same authentication method
+        auth_pass securepass123 # Same password as the master
+    }
+    
+    virtual_ipaddress {
+        192.168.188.2           # The same virtual IP
+    }
+}
+```
+
+- `state BACKUP`: Defines the system as the backup node.
+- `priority 90`: Lower priority so that the backup only takes over when the master fails.
+- The other settings, such as `virtual_router_id` and `auth_pass`, must match the master configuration.
+
+### 4. **Start and Enable Keepalived**
+
+After configuring Keepalived on both systems, enable and start the service on both:
+
+```bash
+sudo systemctl enable keepalived
+sudo systemctl start keepalived
+```
+
+### 5. **Testing Failover**
+
+To test the failover, you can stop the Keepalived service on the master node:
+
+```bash
+sudo systemctl stop keepalived
+```
+
+On the backup node, check if it takes over the virtual IP:
+
+```bash
+ip a
+```
+
+You should see the virtual IP `192.168.188.2` assigned to the backup node’s interface.
+
+### Additional Details:
+
+- **Priority**: In a Keepalived setup, the node with the highest priority becomes the master. If the master fails, the backup with the next highest priority takes over.
+- **Failback**: When the master node recovers, it will automatically reclaim the virtual IP unless you configure `nopreempt`. 
+
+### 6. **Monitoring**
+
+To monitor the status of the Keepalived service, use:
+
+```bash
+sudo systemctl status keepalived
+```
+
+You can also check logs for any issues:
+
+```bash
+sudo tail -f /var/log/syslog
+```
+
+By following these steps, you will have a fully functioning Keepalived setup with master/backup failover and a shared virtual IP (`192.168.188.2`).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```bash
 #!/bin/bash
